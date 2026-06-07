@@ -2,6 +2,8 @@
 
 A developer documentation site for **Unit's Ready-to-Launch (RtL) Banking** product — the full integration journey from concept to production, with an interactive API reference.
 
+**Live:** https://bdweix.github.io/unit-rtl-banking-docs/
+
 ## Highlights
 
 - **Task-oriented IA:** *Start here → Build → Operate & observe → API reference → Go to production → Outreach → Reference*.
@@ -52,9 +54,14 @@ astro.config.mjs          # site config + sidebar IA
 
 Pages are Markdown/MDX in `src/content/docs/`. The left-hand navigation is defined explicitly in `astro.config.mjs` (`sidebar`). To change the API reference, edit `public/openapi.yaml` — the Scalar page picks it up automatically.
 
-## Before publishing
+## Deployment
 
-- Set the real deployment URL in `astro.config.mjs` (`site:`) to enable the sitemap and canonical URLs.
+The site auto-deploys to **GitHub Pages** on every push to `main` via `.github/workflows/deploy.yml` (build with Node 22 → upload artifact → deploy). It's served from a sub-path, so `astro.config.mjs` sets `base: '/unit-rtl-banking-docs'`.
+
+A `rehype-base-links.mjs` plugin prefixes that base to root-relative links authored in Markdown content. Links inside MDX components (e.g. `<LinkCard href>`) and hero actions can't go through that plugin, so they include the base explicitly — if you change `base`, update those too (search the repo for `/unit-rtl-banking-docs/`).
+
+To host at a domain root instead, set `BASE = ''` in `astro.config.mjs`, update `site`, and drop the explicit base from the MDX/hero links.
+
 - Optionally pin a Scalar version in `public/api-reference/index.html` instead of `@latest`.
 
 ## Sources
