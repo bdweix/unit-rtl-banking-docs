@@ -1,0 +1,76 @@
+---
+title: Introduction
+description: What Unit Ready-to-Launch Banking is, who it's for, and the pieces you'll integrate.
+sidebar:
+  order: 1
+---
+
+import { Steps, LinkCard } from '@astrojs/starlight/components';
+
+Ready-to-Launch (RtL) Banking is a **pre-built, white-labeled banking application** you embed in your product. Unit hosts the UI, runs onboarding (KYC/KYB), manages compliance and fraud, and operates the underlying bank accounts. You provide the customer, the brand, and a place to render one web component.
+
+The trade is simple: you give up pixel-level control over the UI in exchange for shipping a real, compliant banking product in weeks instead of quarters.
+
+:::tip[The one-sentence mental model]
+You authenticate your user, mint a **JWT**, and hand it to a **web component**. Unit renders the entire banking experience inside that component and tells you what's happening through **webhooks** and a small read-oriented **HTTP API**.
+:::
+
+## Who this is for
+
+Ready-to-Launch is a good fit when:
+
+- You want embedded banking as a **feature inside an existing product**, not a standalone neobank.
+- You want to **validate demand** or get to market quickly before investing in a custom build.
+- You have **one engineer for ~1–2 weeks** and don't want to build banking UI, onboarding, or compliance workflows yourself.
+- You're comfortable with Unit's hosted UI and the customization that theming provides.
+
+It's *not* the right fit if you need a fully bespoke UI, deep programmatic control over every banking primitive, or advanced risk/fraud tooling on day one. For that, see [Custom vs. Ready-to-Launch](/start-here/custom-vs-ready-to-launch/).
+
+## What's included
+
+| Capability | What you get |
+| --- | --- |
+| **Onboarding** | Hosted KYC (individuals, sole props) and KYB (businesses) application flow. |
+| **Deposit accounts** | Interest-bearing checking accounts with routing/account numbers and balances. |
+| **Cards** | Physical and virtual debit cards with programmatic controls. |
+| **Payments** | ACH, same-day ACH, wire, check, and free instant 24/7 book transfers. |
+| **Money-in** | Mobile check deposit and fee-free nationwide ATM access. |
+| **Teams** | Owner / Admin / ReadOnly / Cardholder roles for business accounts. |
+| **Integrations** | Plaid and Intuit QuickBooks. |
+| **Outreach** | Branded emails, marketing banners, and a landing page component. |
+
+Compliance, risk, fraud ownership, and end-user banking support are **managed by Unit**.
+
+## The five things you'll integrate
+
+<Steps>
+
+1. **The embed.** A `<unit-elements-white-label-app>` web component (or native SDK) that renders the whole experience. See [Embed the app](/build/embed-the-app/).
+
+2. **Authentication.** A JWT minted from your identity provider that identifies the end-user to Unit. See [Authentication & JWT](/build/authentication/).
+
+3. **Branding.** Colors, logo, fonts, and card art via the dashboard or a `settings-json` attribute. See [Theming & branding](/build/theming/).
+
+4. **Webhooks.** Server-to-server events for applications, accounts, cards, and transactions. See [Webhooks](/operate/webhooks/).
+
+5. **The API.** A read-oriented HTTP API for accounts, customers, and transactions, plus book payments. See [API overview](/api/overview/).
+
+</Steps>
+
+Everything beyond these — pre-fill, multi-user, unified onboarding with Stripe, end-user events — is **optional** and layered on as you need it.
+
+## How to read these docs
+
+- **Start here** (you are here) — concepts and a working quickstart.
+- **Build the integration** — the implementation guides, roughly in the order you'll need them.
+- **Operate & observe** — what you need *after* launch: webhooks, application states, error handling.
+- **API reference** — conventions plus an interactive, try-it reference.
+- **Go to production** — the environment model, security model, and a launch checklist.
+
+## Next step
+
+<LinkCard
+	title="Quickstart →"
+	description="Render the banking app with a demo token in about five minutes."
+	href="/unit-rtl-banking-docs/start-here/quickstart/"
+/>

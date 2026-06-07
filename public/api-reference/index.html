@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ready-to-Launch Banking — API Reference</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <style>
+      :root { color-scheme: light dark; }
+      body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+      .topbar {
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.6rem 1rem; border-bottom: 1px solid rgba(128,128,128,0.2);
+        background: #14162a; color: #fff; font-size: 0.9rem;
+      }
+      .topbar a { color: #c9c0ff; text-decoration: none; font-weight: 600; }
+      .topbar a:hover { text-decoration: underline; }
+      .topbar .dot { width: 18px; height: 18px; border-radius: 5px; background: #5537FF; display:inline-block; }
+      .topbar .spacer { flex: 1; }
+      .topbar .muted { color: #9aa0c2; font-weight: 500; }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <span class="dot"></span>
+      <a href="../">← Ready-to-Launch Banking docs</a>
+      <span class="spacer"></span>
+      <span class="muted">Interactive API reference</span>
+    </div>
+
+    <div id="app"></div>
+
+    <!-- Scalar API Reference (loaded from CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+    <script>
+      // Newer Scalar exposes a global factory; fall back to the legacy
+      // auto-init script tag if it isn't present.
+      function mount() {
+        if (window.Scalar && typeof window.Scalar.createApiReference === 'function') {
+          window.Scalar.createApiReference('#app', {
+            url: '../openapi.yaml',
+            theme: 'purple',
+            hideDownloadButton: false,
+            metaData: { title: 'Ready-to-Launch Banking API' },
+          });
+        } else {
+          // Legacy fallback: inject the auto-init configuration script.
+          var cfg = document.createElement('script');
+          cfg.id = 'api-reference';
+          cfg.setAttribute('data-url', '../openapi.yaml');
+          document.getElementById('app').appendChild(cfg);
+        }
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', mount);
+      } else {
+        mount();
+      }
+    </script>
+  </body>
+</html>

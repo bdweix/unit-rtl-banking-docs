@@ -1,0 +1,138 @@
+---
+title: Embed the app
+description: Render the Ready-to-Launch banking experience on web, React Native, iOS, and Android — including Content Security Policy and logout cleanup.
+sidebar:
+  order: 1
+---
+
+import { Tabs, TabItem, Steps } from '@astrojs/starlight/components';
+
+The embed is the heart of a Ready-to-Launch integration: a single component that renders onboarding *and* the full banking app, switching automatically based on the user's state. This page covers every platform and the two things teams most often miss — **Content Security Policy** and **logout cleanup**.
+
+## Choose your platform
+
+<Tabs syncKey="platform">
+<TabItem label="Web">
+
+**1. Load the components bundle** in your `<head>`:
+
+```html
+<!-- Sandbox -->
+<script type="module" src="https://ui.s.unit.sh/release/latest/components-extended.es.js"></script>
+
+<!-- Production -->
+<script type="module" src="https://ui.unit.co/release/latest/components-extended.es.js"></script>
+```
+
+**2. Render the element**, passing the JWT you minted for the signed-in user:
+
+```html
+<unit-elements-white-label-app jwt-token="{{JwtToken}}"></unit-elements-white-label-app>
+```
+
+**Or create it dynamically:**
+
+```js
+const app = document.createElement('unit-elements-white-label-app');
+app.setAttribute('jwt-token', jwtToken);
+document.querySelector('#unit-app-placeholder').append(app);
+```
+
+The component is a standard custom element rendered in a shadow DOM, so your page styles won't leak in and the component's styles won't leak out. Brand it through [theming](/build/theming/), not page CSS.
+
+</TabItem>
+<TabItem label="React / React Native">
+
+Unit ships SDKs for React Native (and the web component works directly in React — just render the custom element and pass `jwt-token`).
+
+```jsx
+// React (web) — the custom element works as-is.
+export function Banking({ jwtToken }) {
+  return <unit-elements-white-label-app jwt-token={jwtToken} />;
+}
+```
+
+For **React Native**, initialize the SDK and mount the provided component, authenticating with the JWT (or customer token). The SDK exposes a cleanup method to clear user data on logout — call it instead of touching `localStorage` directly.
+
+:::note
+Native SDK package names, init signatures, and cleanup method names are versioned. Confirm the current API for your SDK version with your solution engineer or the SDK README — the shape (init → mount → cleanup-on-logout) is stable even as names change.
+:::
+
+</TabItem>
+<TabItem label="iOS (Swift)">
+
+Add the Unit iOS SDK, initialize it, and instantiate the white-label component with the user's JWT (or customer token). On logout, call the SDK's dedicated cleanup method to clear stored user data.
+
+```swift
+// Shape (confirm exact names against your SDK version):
+// 1. UnitSDK.initialize(environment: .sandbox)
+// 2. let view = UnitWhiteLabelApp(jwtToken: jwtToken)
+// 3. UnitSDK.clearUserData()   // on logout
+```
+
+</TabItem>
+<TabItem label="Android (Kotlin)">
+
+Add the Unit Android SDK, initialize it, and instantiate the white-label component with the user's JWT (or customer token). On logout, call the SDK's dedicated cleanup method.
+
+```kotlin
+// Shape (confirm exact names against your SDK version):
+// 1. UnitSdk.initialize(context, Environment.SANDBOX)
+// 2. val view = UnitWhiteLabelApp(context, jwtToken = jwtToken)
+// 3. UnitSdk.clearUserData()   // on logout
+```
+
+</TabItem>
+</Tabs>
+
+## Content Security Policy (web)
+
+The embed loads several third parties at runtime — identity verification vendors, Plaid, and Zendesk for support chat. If your site sends a `Content-Security-Policy`, you must allow them or the app will silently fail to load parts of the flow.
+
+```html title="Add to your page (or send as a CSP header)"
+<meta http-equiv="Content-Security-Policy" content="
+  connect-src 'self' https://*.s.unit.sh https://*.unit.co https://*.zdassets.com
+    https://*.zendesk.com https://cdn.plaid.com https://*.verygoodvault.com
+    https://*.vouched.id https://*.au10tixservices.com;
+  script-src 'self' https://*.zdassets.com https://*.zendesk.com https://cdn.plaid.com
+    https://js.verygoodvault.com https://*.vouched.id https://*.au10tixservices.com;
+  frame-src 'self' https://*.zendesk.com https://cdn.plaid.com https://*.verygoodvault.com
+    https://*.vouched.id https://*.au10tixservices.com;
+"/>
+```
+
+:::tip
+For production, prefer sending CSP as an **HTTP response header** rather than a `<meta>` tag, and fold these allowances into your existing policy rather than replacing it. Swap the sandbox hosts (`*.s.unit.sh`) appropriately — `*.unit.co` covers production.
+:::
+
+## Logout cleanup (web)
+
+The web embed stores the end-user's banking session in `localStorage`. **You must clear it** when the user logs out of your app, and you should also clear it after 24 hours of inactivity:
+
+```js title="On logout"
+localStorage.removeItem('unitCustomerToken');
+localStorage.removeItem('unitVerifiedCustomerToken');
+```
+
+Clearing it keeps sessions clean across users:
+
+- **Session bleed** — without cleanup, the next user on a shared device can land in the previous user's banking session.
+- **Stale state** — leftover tokens can make the embed behave inconsistently; clearing them resolves it.
+
+:::note
+Make logout cleanup part of your standard sign-out flow, and see the [Security model](/launch/security/) for the full guidance. On native, use the SDK's cleanup method instead of clearing storage yourself.
+:::
+
+## What the component renders, and when
+
+You render the **same** element for every signed-in user. The component decides what to show based on the user's state behind the JWT:
+
+- **No application yet** → onboarding (the application form).
+- **Application in progress / pending** → status screens.
+- **Approved** → the full banking app (accounts, cards, payments).
+
+If you only want the onboarding portion (and to run your own UI afterward), use the [embedded application form](/build/embedded-application-form/) instead.
+
+## Next step
+
+Make the JWT real → [Authentication & JWT](/build/authentication/).

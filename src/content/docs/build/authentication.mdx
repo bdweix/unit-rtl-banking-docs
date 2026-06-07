@@ -1,0 +1,120 @@
+---
+title: Authentication & JWT
+description: How Ready-to-Launch identifies your end-users — configuring your identity provider's JWKS, minting a custom RS256 JWT, required claims, and the sandbox OTP.
+sidebar:
+  order: 2
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Ready-to-Launch identifies an end-user to Unit with a **JWT that you mint** and pass to the embed as `jwt-token`. Unit verifies the token's signature against a public key you've registered, then loads (or starts) that user's banking experience.
+
+There's no separate Unit login for your users — your JWT *is* the identity. Get this right and everything else follows; get it wrong and the embed simply won't load.
+
+## Two ways to provide the key
+
+You register a public key with Unit so it can verify your tokens. There are two supported approaches:
+
+1. **Your identity provider's JWKS** — if you use Okta, Auth0, AWS Cognito, or Stytch, point Unit at your provider's JWKS endpoint and let your IdP mint tokens.
+2. **A custom key pair** — generate an RSA key pair yourself, register the public key, and sign tokens in your own backend.
+
+Both result in the same thing: Unit holds your **public** key and verifies the **RS256** signature on every token.
+
+### Option A — Identity provider (JWKS)
+
+<Steps>
+
+1. In the **Unit Dashboard**, go to **Developer → Settings → Authentication**.
+
+2. Add your provider's **JWKS path** (the `.well-known/jwks.json` URL for Okta, Auth0, Cognito, or Stytch).
+
+3. Configure your IdP to issue tokens whose claims match the [requirements below](#required-claims).
+
+4. Mint a token per signed-in user and pass it to the embed.
+
+</Steps>
+
+### Option B — Custom JWT (your own keys)
+
+Generate an RSA key pair, register the **public** key (and its key ID) in the dashboard, and sign tokens with the **private** key in your backend using **RS256**.
+
+```js title="Minting a token (Node, jsonwebtoken)"
+import jwt from 'jsonwebtoken';
+import { readFileSync } from 'node:fs';
+
+const privateKey = readFileSync('./unit-private.pem');
+
+export function mintUnitJwt(userId) {
+  return jwt.sign(
+    {
+      sub: userId,                 // your stable user id
+      iss: 'https://your-app.example.com',
+    },
+    privateKey,
+    {
+      algorithm: 'RS256',          // required
+      keyid: 'your-registered-kid', // must match a key uploaded to Unit
+      expiresIn: '15m',            // keep it short-lived
+    }
+  );
+}
+```
+
+```text title="Generate a key pair (OpenSSL)"
+openssl genrsa -out unit-private.pem 2048
+openssl rsa -in unit-private.pem -pubout -out unit-public.pem
+# Upload unit-public.pem (and note its kid) in the Unit Dashboard.
+```
+
+## Required claims
+
+| Claim | Required | Meaning |
+| --- | --- | --- |
+| `sub` | **Yes** | A unique, stable identifier for the end-user. This is the key Unit uses to associate the user with their application, customer, and accounts. Treat it as immutable per user. |
+| `exp` | **Yes** | Expiry. Keep tokens short-lived (minutes). |
+| `iss` | **Yes** | The token issuer; must match what you configured in the dashboard. |
+| `iat` | Recommended | Issued-at time. |
+| `kid` (header) | Custom keys | Must match an uploaded public key so Unit selects the right key to verify with. |
+| `unitRole` | Optional | Assigns a team role for [multi-user access](/build/multi-user-access/) (`Admin`, `ReadOnly`, `Cardholder`). |
+
+:::caution[`sub` is permanent identity]
+Whatever you put in `sub` *is* the user, forever. If you regenerate or change it, Unit sees a brand-new user with no accounts. Use an internal, stable id (not an email or anything the user can change).
+:::
+
+## Signing requirements
+
+- **Algorithm:** `RS256` (RSA + SHA-256), per RFC 7519.
+- **Key:** Unit stores your public key; you sign with the private key.
+- **Lifetime:** short-lived. Mint just-in-time when rendering the embed, don't cache long-lived tokens in the browser.
+
+## Sandbox OTP
+
+When a user goes through onboarding **in sandbox**, the embedded flow asks for a one-time passcode. Always use:
+
+```
+000001
+```
+
+Each application submission also requires a **unique phone number** — sandbox rejects duplicates, often as a generic error. See [Error handling](/operate/error-handling/#duplicate-phone-number).
+
+## Troubleshooting: the embed won't load or rejects the token
+
+Work down this list — it resolves the large majority of auth issues:
+
+<Steps>
+
+1. **Right environment script?** Sandbox tokens go with the sandbox CDN, production with production. Mixing them fails silently.
+
+2. **Decode the token** (e.g. paste into a JWT decoder) and verify: `iss` matches your dashboard config, `sub` is a non-empty string, and `exp` is in the future.
+
+3. **Right key?** The public key (and `kid`) registered in the dashboard must correspond to the private key you signed with.
+
+4. **Clear stale browser state.** Remove `unitCustomerToken` and `unitVerifiedCustomerToken` from `localStorage` and reload — leftover session tokens can mask a correct new token.
+
+5. **Token available before mount.** Make sure `jwt-token` is set *before* the component initializes; mounting with an empty/placeholder token and updating it late can leave the component unauthenticated.
+
+</Steps>
+
+## Next step
+
+Brand the experience → [Theming & branding](/build/theming/).

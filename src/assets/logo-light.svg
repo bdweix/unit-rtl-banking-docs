@@ -1,0 +1,7 @@
+<svg width="232" height="28" viewBox="0 0 232 28" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Unit Ready-to-Launch Banking">
+  <rect x="0.5" y="0.5" width="27" height="27" rx="7" fill="#5537FF"/>
+  <path d="M9 8.5v6.2a5 5 0 0 0 10 0V8.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+  <circle cx="14" cy="20.5" r="1.6" fill="#21D07A"/>
+  <text x="36" y="13" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="13" font-weight="700" fill="#0B1020">Ready-to-Launch</text>
+  <text x="36" y="25" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="11" font-weight="500" fill="#5537FF" letter-spacing="0.5">B A N K I N G</text>
+</svg>

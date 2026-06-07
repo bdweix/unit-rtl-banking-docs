@@ -1,0 +1,729 @@
+openapi: 3.1.0
+info:
+  title: Ready-to-Launch Banking API
+  version: "2026-06"
+  description: |
+    The Ready-to-Launch (RtL) Banking API is a small, read-oriented HTTPS API your
+    **backend** uses to read banking data and initiate internal **book payments**.
+
+    It is a deliberate subset of Unit's Custom platform — anything not listed here is, by
+    design, unavailable in Ready-to-Launch (it lives in the Custom API, happens inside the
+    embedded app, or requires Unit-side action).
+
+    **Conventions**
+    - Responses follow the [JSON:API](https://jsonapi.org/) document shape (`data`, `attributes`, `relationships`, `meta`).
+    - Monetary amounts are integers in **cents**.
+    - Authenticate with a **Bearer token** issued by your Unit solution engineer (server-side only).
+    - `POST` bodies use `Content-Type: application/vnd.api+json`.
+    - List endpoints paginate with `page[limit]` / `page[offset]` and return `meta.pagination`.
+    - Endpoints have a 5-second timeout.
+  contact:
+    name: Unit Ready-to-Launch
+    url: https://www.unit.co/docs/ready-to-launch/banking/
+servers:
+  - url: https://api.s.unit.sh
+    description: Sandbox
+  - url: https://api.unit.co
+    description: Production (Live)
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Accounts
+  - name: Customers
+  - name: Transactions
+  - name: Check Deposits
+  - name: Payments
+  - name: Users
+  - name: Webhook Events
+
+paths:
+  /ready-to-launch/accounts/{accountId}:
+    get:
+      tags: [Accounts]
+      summary: Get account
+      description: Retrieve a single deposit account by id. **Scope:** `accounts`.
+      operationId: getAccount
+      parameters:
+        - $ref: "#/components/parameters/accountId"
+      responses:
+        "200":
+          description: The account.
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Account" }
+              example:
+                data:
+                  type: account
+                  id: "10004"
+                  attributes:
+                    routingNumber: "812345678"
+                    accountNumber: "1000000001"
+                    status: Open
+                    balance: 150000
+                    userIds: ["user_12345", "user_67890"]
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /ready-to-launch/accounts:
+    get:
+      tags: [Accounts]
+      summary: List accounts
+      description: |
+        List deposit accounts. **Scope:** `accounts`.
+
+        At least one of `filter[customerId]` or `filter[userId]` is required.
+      operationId: listAccounts
+      parameters:
+        - name: filter[customerId]
+          in: query
+          schema: { type: string }
+          description: Filter by customer id. Required if `filter[userId]` is omitted.
+        - name: filter[userId]
+          in: query
+          schema: { type: string }
+          description: Filter by user id. Required if `filter[customerId]` is omitted.
+        - $ref: "#/components/parameters/pageLimit"
+        - $ref: "#/components/parameters/pageOffset"
+      responses:
+        "200":
+          description: A page of accounts.
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Account" }
+                  meta: { $ref: "#/components/schemas/PaginationMeta" }
+              example:
+                data:
+                  - type: account
+                    id: "10020"
+                    attributes:
+                      routingNumber: "406735154"
+                      accountNumber: "864800000014"
+                      status: Open
+                      balance: 6000
+                      userIds: ["user_12345"]
+                meta:
+                  pagination: { total: 1, limit: 100, offset: 0 }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /ready-to-launch/customers/{customerId}:
+    get:
+      tags: [Customers]
+      summary: Get customer
+      description: Retrieve a single customer by id. **Scope:** `customers`.
+      operationId: getCustomer
+      parameters:
+        - $ref: "#/components/parameters/customerId"
+      responses:
+        "200":
+          description: The customer.
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Customer" }
+              example:
+                data:
+                  type: customer
+                  id: "10014"
+                  attributes:
+                    createdAt: "2023-10-20T10:15:22.123Z"
+                    status: Active
+                    customerType: individual
+                    userIds: ["user_12345", "user_67890"]
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /ready-to-launch/customers:
+    get:
+      tags: [Customers]
+      summary: List customers
+      description: List customers. **Scope:** `customers`.
+      operationId: listCustomers
+      parameters:
+        - name: filter[customerId]
+          in: query
+          schema: { type: string }
+        - name: filter[userId]
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/pageLimit"
+        - $ref: "#/components/parameters/pageOffset"
+      responses:
+        "200":
+          description: A list of customers.
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Customer" }
+              example:
+                data:
+                  - type: customer
+                    id: "10014"
+                    attributes:
+                      createdAt: "2023-10-20T10:15:22.123Z"
+                      status: Active
+                      customerType: individual
+                      userIds: ["user_12345", "user_67890"]
+                  - type: customer
+                    id: "10016"
+                    attributes:
+                      createdAt: "2023-11-05T14:30:00.000Z"
+                      status: Active
+                      customerType: business
+                      userIds: ["user_11111"]
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /ready-to-launch/accounts/{accountId}/transactions/{transactionId}:
+    get:
+      tags: [Transactions]
+      summary: Get transaction
+      description: Retrieve a single transaction on an account. **Scope:** `transactions`.
+      operationId: getTransaction
+      parameters:
+        - $ref: "#/components/parameters/accountId"
+        - name: transactionId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The transaction.
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Transaction" }
+              example:
+                data:
+                  type: transaction
+                  id: "12345"
+                  attributes:
+                    amount: 50000
+                    direction: Credit
+                    transactionType: ACH
+                    createdAt: "2021-06-02T10:15:22.123Z"
+                    balance: 150000
+                    summary: "ACH payment from John Doe"
+                    tags: { purpose: invoice-payment }
+                    counterparty:
+                      name: John Doe
+                      routingNumber: "812345678"
+                      accountNumber: "1000000002"
+                      accountType: Checking
+                    userIds: ["user_12345"]
+                  relationships:
+                    account: { data: { type: account, id: "10004" } }
+                    customer: { data: { type: customer, id: "10000" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /ready-to-launch/transactions:
+    get:
+      tags: [Transactions]
+      summary: List transactions
+      description: |
+        List transactions across an account, customer, or user. **Scope:** `transactions`.
+
+        One of `filter[userId]` or `filter[customerId]` is required. Transaction access may
+        require completing advanced due diligence with Unit.
+      operationId: listTransactions
+      parameters:
+        - name: filter[userId]
+          in: query
+          schema: { type: string }
+          description: Required if `filter[customerId]` is omitted.
+        - name: filter[customerId]
+          in: query
+          schema: { type: string }
+          description: Required if `filter[userId]` is omitted.
+        - name: filter[accountId]
+          in: query
+          schema: { type: string }
+        - name: filter[since]
+          in: query
+          schema: { type: string, format: date-time }
+          description: ISO 8601 start date (inclusive).
+        - name: filter[until]
+          in: query
+          schema: { type: string, format: date-time }
+          description: ISO 8601 end date (inclusive).
+        - name: filter[query]
+          in: query
+          schema: { type: string }
+          description: Free-text search.
+        - name: filter[fromAmount]
+          in: query
+          schema: { type: integer }
+          description: Minimum amount in cents (inclusive).
+        - name: filter[toAmount]
+          in: query
+          schema: { type: integer }
+          description: Maximum amount in cents (inclusive).
+        - name: filter[type]
+          in: query
+          schema: { type: string }
+          description: Comma-separated transaction types.
+        - name: filter[direction]
+          in: query
+          schema: { type: string, enum: [Credit, Debit] }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [createdAt, -createdAt], default: -createdAt }
+        - $ref: "#/components/parameters/pageLimit"
+        - $ref: "#/components/parameters/pageOffset"
+      responses:
+        "200":
+          description: A page of transactions.
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Transaction" }
+                  meta: { $ref: "#/components/schemas/PaginationMeta" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /ready-to-launch/check-deposits/{checkDepositId}:
+    get:
+      tags: [Check Deposits]
+      summary: Get check deposit
+      description: Retrieve a single mobile check deposit by id. **Scope:** `check-deposits`.
+      operationId: getCheckDeposit
+      parameters:
+        - name: checkDepositId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The check deposit.
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/CheckDeposit" }
+              example:
+                data:
+                  type: checkDeposit
+                  id: "12345"
+                  attributes:
+                    amount: 50000
+                    direction: Credit
+                    type: CheckDeposit
+                    createdAt: "2021-06-02T10:15:22.123Z"
+                    balance: 150000
+                    summary: "Check deposit from John Doe"
+                  relationships:
+                    account: { data: { type: account, id: "10004" } }
+                    customer: { data: { type: customer, id: "10000" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /ready-to-launch/book-payments:
+    post:
+      tags: [Payments]
+      summary: Create book payment
+      description: |
+        Move money instantly between two accounts on Unit (e.g. from an end-user account to
+        your operational account, or vice versa). **Scope:** `payments-write`.
+
+        This is the only money-movement primitive available to your backend in Ready-to-Launch.
+        Always send an `idempotencyKey`.
+      operationId: createBookPayment
+      requestBody:
+        required: true
+        content:
+          application/vnd.api+json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  required: [type, attributes, relationships]
+                  properties:
+                    type: { type: string, const: bookPayment }
+                    attributes:
+                      type: object
+                      required: [amount, description]
+                      properties:
+                        amount: { type: integer, description: Amount in cents. }
+                        description:
+                          type: string
+                          maxLength: 80
+                          description: Appears on the counterparty statement.
+                        tags:
+                          type: object
+                          additionalProperties: { type: string }
+                          description: Copied onto the generated transaction.
+                        idempotencyKey:
+                          type: string
+                          description: Makes the request safe to retry.
+                    relationships:
+                      type: object
+                      required: [account, operationalAccount]
+                      properties:
+                        account: { $ref: "#/components/schemas/Relationship" }
+                        operationalAccount: { $ref: "#/components/schemas/Relationship" }
+            example:
+              data:
+                type: bookPayment
+                attributes:
+                  amount: 1000
+                  description: "test payment"
+                  tags: { test: "test" }
+                  idempotencyKey: "unique-idempotency-key"
+                relationships:
+                  account: { data: { type: account, id: "10013" } }
+                  operationalAccount: { data: { type: account, id: "10020" } }
+      responses:
+        "200":
+          description: The created book payment.
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/BookPayment" }
+              example:
+                data:
+                  type: bookPayment
+                  id: "12345"
+                  attributes:
+                    createdAt: "2023-10-20T10:15:22.123Z"
+                    amount: 50000
+                    direction: Credit
+                    description: "Payment transfer"
+                    status: Sent
+                    tags: {}
+                    userIds: ["user_12345"]
+                  relationships:
+                    account: { data: { type: account, id: "10004" } }
+                    counterpartyAccount: { data: { type: account, id: "10005" } }
+                    customer: { data: { type: customer, id: "10000" } }
+                    transaction: { data: { type: transaction, id: "12345" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/UnprocessableEntity" }
+
+  /ready-to-launch/users/{userId}/disable:
+    post:
+      tags: [Users]
+      summary: Disable user
+      description: |
+        Disable a white-label app user's access to the banking app. This does **not** disable the
+        underlying customer or freeze/archive their accounts. Triggers the
+        `whiteLabelAppUser.disabled` webhook.
+      operationId: disableUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The disabled user.
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/WhiteLabelAppUser" }
+              example:
+                data:
+                  type: whiteLabelAppUser
+                  id: "user_67890"
+                  attributes:
+                    userId: "user_67890"
+                    userRole: Admin
+                    status: Disabled
+                  relationships:
+                    customer: { data: { type: customer, id: "10000" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /ready-to-launch/webhook-events:
+    get:
+      tags: [Webhook Events]
+      summary: List webhook events
+      description: |
+        Retrieve webhook events — useful for replaying events you may have missed.
+        **Scope:** `webhook-events`.
+      operationId: listWebhookEvents
+      parameters:
+        - name: page[limit]
+          in: query
+          schema: { type: integer, default: 100, maximum: 1000 }
+        - $ref: "#/components/parameters/pageOffset"
+        - name: filter[type][]
+          in: query
+          schema: { type: array, items: { type: string } }
+          description: Filter by one or more event types.
+        - name: filter[since]
+          in: query
+          schema: { type: string, format: date-time }
+          description: RFC3339 — events at/after this time.
+        - name: filter[until]
+          in: query
+          schema: { type: string, format: date-time }
+          description: RFC3339 — events at/before this time.
+      responses:
+        "200":
+          description: A page of webhook events.
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { type: object }
+                  meta: { $ref: "#/components/schemas/PaginationMeta" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >
+        A server-side Bearer token issued by your Unit solution engineer. Tokens are scoped
+        (e.g. `accounts`, `customers`, `transactions`, `check-deposits`, `payments-write`,
+        `webhook-events`). Keep production and sandbox tokens separate.
+
+  parameters:
+    accountId:
+      name: accountId
+      in: path
+      required: true
+      schema: { type: string }
+      example: "10004"
+    customerId:
+      name: customerId
+      in: path
+      required: true
+      schema: { type: string }
+      example: "10014"
+    pageLimit:
+      name: page[limit]
+      in: query
+      schema: { type: integer, default: 100, maximum: 10000 }
+      description: Page size.
+    pageOffset:
+      name: page[offset]
+      in: query
+      schema: { type: integer, default: 0 }
+      description: Offset into the result set.
+
+  responses:
+    Unauthorized:
+      description: Missing, invalid, or insufficiently-scoped bearer token.
+      content:
+        application/vnd.api+json:
+          schema: { $ref: "#/components/schemas/Errors" }
+          example:
+            errors:
+              - status: "401"
+                title: Unauthorized
+    NotFound:
+      description: No resource with that id in this environment.
+      content:
+        application/vnd.api+json:
+          schema: { $ref: "#/components/schemas/Errors" }
+          example:
+            errors:
+              - status: "404"
+                title: Resource Not Found
+    UnprocessableEntity:
+      description: The request failed validation.
+      content:
+        application/vnd.api+json:
+          schema: { $ref: "#/components/schemas/Errors" }
+          example:
+            errors:
+              - status: "422"
+                title: Validation Error
+                detail: "description must be at most 80 characters"
+
+  schemas:
+    Relationship:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            type: { type: string }
+            id: { type: string }
+
+    PaginationMeta:
+      type: object
+      properties:
+        pagination:
+          type: object
+          properties:
+            total: { type: integer }
+            limit: { type: integer }
+            offset: { type: integer }
+
+    Errors:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              status: { type: string }
+              title: { type: string }
+              detail: { type: string }
+
+    Account:
+      type: object
+      properties:
+        type: { type: string, const: account }
+        id: { type: string }
+        attributes:
+          type: object
+          properties:
+            routingNumber: { type: string }
+            accountNumber: { type: string }
+            status: { type: string, enum: [Open, Frozen, Closed] }
+            balance: { type: integer, description: Balance in cents. }
+            userIds:
+              type: array
+              items: { type: string }
+
+    Customer:
+      type: object
+      properties:
+        type: { type: string, const: customer }
+        id: { type: string }
+        attributes:
+          type: object
+          properties:
+            createdAt: { type: string, format: date-time }
+            status: { type: string, enum: [Active, Archived] }
+            customerType: { type: string, enum: [individual, business] }
+            userIds:
+              type: array
+              items: { type: string }
+
+    Transaction:
+      type: object
+      properties:
+        type: { type: string, const: transaction }
+        id: { type: string }
+        attributes:
+          type: object
+          properties:
+            createdAt: { type: string, format: date-time }
+            direction: { type: string, enum: [Credit, Debit] }
+            amount: { type: integer, description: Amount in cents. }
+            balance: { type: integer, description: Account balance after the transaction, in cents. }
+            transactionType: { type: string }
+            summary: { type: string }
+            tags: { type: object, additionalProperties: { type: string } }
+            counterparty: { $ref: "#/components/schemas/Counterparty" }
+            userIds: { type: array, items: { type: string } }
+            addenda: { type: string, description: ACH only, max 80 characters. }
+            atmName: { type: string }
+            atmLocation: { type: string }
+            merchant:
+              type: object
+              properties:
+                name: { type: string }
+                type: { type: integer, description: MCC code. }
+                location: { type: string }
+                id: { type: string }
+        relationships:
+          type: object
+          properties:
+            account: { $ref: "#/components/schemas/Relationship" }
+            customer: { $ref: "#/components/schemas/Relationship" }
+
+    CheckDeposit:
+      type: object
+      properties:
+        type: { type: string, const: checkDeposit }
+        id: { type: string }
+        attributes:
+          type: object
+          properties:
+            amount: { type: integer, description: Amount in cents. }
+            direction: { type: string }
+            type: { type: string }
+            createdAt: { type: string, format: date-time }
+            balance: { type: integer }
+            summary: { type: string }
+            tags: { type: object, additionalProperties: { type: string } }
+            counterparty: { $ref: "#/components/schemas/Counterparty" }
+        relationships:
+          type: object
+          properties:
+            account: { $ref: "#/components/schemas/Relationship" }
+            customer: { $ref: "#/components/schemas/Relationship" }
+
+    BookPayment:
+      type: object
+      properties:
+        type: { type: string, const: bookPayment }
+        id: { type: string }
+        attributes:
+          type: object
+          properties:
+            createdAt: { type: string, format: date-time }
+            status: { type: string, description: "e.g. Sent, Rejected." }
+            reason: { type: string, description: Failure reason when status is Rejected. }
+            amount: { type: integer }
+            description: { type: string }
+            direction: { type: string }
+            tags: { type: object, additionalProperties: { type: string } }
+            userIds: { type: array, items: { type: string } }
+        relationships:
+          type: object
+          properties:
+            account: { $ref: "#/components/schemas/Relationship" }
+            counterpartyAccount: { $ref: "#/components/schemas/Relationship" }
+            customer: { $ref: "#/components/schemas/Relationship" }
+            transaction: { $ref: "#/components/schemas/Relationship" }
+
+    WhiteLabelAppUser:
+      type: object
+      properties:
+        type: { type: string, const: whiteLabelAppUser }
+        id: { type: string }
+        attributes:
+          type: object
+          properties:
+            userId: { type: string, description: Matches the JWT `sub` claim. }
+            userRole: { type: string, enum: [Owner, Admin, ReadOnly, Cardholder] }
+            status: { type: string }
+        relationships:
+          type: object
+          properties:
+            customer: { $ref: "#/components/schemas/Relationship" }
+
+    Counterparty:
+      type: object
+      properties:
+        name: { type: string }
+        routingNumber: { type: string }
+        accountNumber: { type: string }
+        accountType: { type: string, enum: [Checking, Savings] }

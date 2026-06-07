@@ -1,0 +1,151 @@
+---
+title: API overview & conventions
+description: Base URLs, authentication, scopes, JSON:API conventions, pagination, and errors for the Ready-to-Launch Banking API — plus the full interactive reference.
+sidebar:
+  order: 1
+---
+
+import { LinkCard, CardGrid, Card } from '@astrojs/starlight/components';
+
+The Ready-to-Launch API is a small, **read-oriented** HTTPS API your **backend** uses to read banking data and initiate internal **book payments**. It is intentionally narrow — see [Custom vs. Ready-to-Launch](/start-here/custom-vs-ready-to-launch/) for why.
+
+<LinkCard
+	title="Open the interactive reference ↗"
+	description="Every endpoint with try-it-out requests, powered by Scalar and the OpenAPI spec."
+	href="/unit-rtl-banking-docs/api-reference/"
+	target="_blank"
+/>
+
+## Base URLs
+
+| Environment | Base URL |
+| --- | --- |
+| Sandbox | `https://api.s.unit.sh` |
+| Production | `https://api.unit.co` |
+
+All RtL endpoints are prefixed `/ready-to-launch/`. (If a path isn't, you're looking at the Custom API.)
+
+## Authentication
+
+Every request carries a server-side **Bearer token** issued by your Unit solution engineer:
+
+```bash
+curl 'https://api.s.unit.sh/ready-to-launch/accounts/10004' \
+  -H "Authorization: Bearer ${TOKEN}"
+```
+
+This token is powerful (it can read customer data and move money). Keep it **server-side only**, scoped, per-environment, and in a secrets manager. See [Security model](/launch/security/).
+
+### Scopes
+
+Tokens are scoped per resource. Request only what you use:
+
+| Scope | Grants |
+| --- | --- |
+| `accounts` | Read accounts. |
+| `customers` | Read customers. |
+| `transactions` | Read transactions *(may require advanced due diligence)*. |
+| `check-deposits` | Read check deposits. |
+| `payments-write` | Create book payments. |
+| `webhook-events` | List webhook events. |
+
+A `401`/`403` usually means the token is missing the scope for that endpoint.
+
+## Conventions
+
+<CardGrid>
+	<Card title="JSON:API shape" icon="document">
+		Responses are JSON:API documents: a `data` object (or array) with `type`, `id`, `attributes`, and `relationships`. Lists include `meta.pagination`.
+	</Card>
+	<Card title="Money is in cents" icon="seti:default">
+		All monetary `amount` and `balance` values are integers in cents. `$1,500.00` is `150000`.
+	</Card>
+	<Card title="Writes use vnd.api+json" icon="pencil">
+		`POST` requests send `Content-Type: application/vnd.api+json` and a `data` envelope.
+	</Card>
+	<Card title="5-second timeout" icon="rocket">
+		Endpoints time out at 5 seconds. Keep clients resilient and retry idempotently.
+	</Card>
+</CardGrid>
+
+## Pagination
+
+List endpoints use offset pagination:
+
+| Parameter | Default | Max |
+| --- | --- | --- |
+| `page[limit]` | 100 | 10,000 (accounts) · 1,000 (webhook events) |
+| `page[offset]` | 0 | — |
+
+Responses include totals:
+
+```json
+{
+  "data": [ /* ... */ ],
+  "meta": { "pagination": { "total": 1, "limit": 100, "offset": 0 } }
+}
+```
+
+## Errors
+
+Errors are returned as a JSON:API `errors` array. **Always read the body** — it carries detail the status code doesn't:
+
+```json
+{
+  "errors": [
+    { "status": "422", "title": "Validation Error",
+      "detail": "description must be at most 80 characters" }
+  ]
+}
+```
+
+| Status | Meaning | Do |
+| --- | --- | --- |
+| `401` / `403` | Bad or unscoped token. | Check the token and its [scopes](#scopes). |
+| `404` | No such id in this environment. | Verify the id and that you're on the right [environment](/launch/environments/). |
+| `422` | Validation failed. | Fix the request per `detail`. |
+| `5xx` | Server error. | Retry with an `idempotencyKey`; capture the body. See [Error handling](/operate/error-handling/). |
+
+## What you can do
+
+| Resource | Read | Write |
+| --- | --- | --- |
+| Accounts | `GET /accounts`, `GET /accounts/:id` | — |
+| Customers | `GET /customers`, `GET /customers/:id` | — |
+| Transactions | `GET /transactions`, `GET /accounts/:id/transactions/:txnId` | — |
+| Check deposits | `GET /check-deposits/:id` | — |
+| Book payments | — | `POST /book-payments` |
+| Users | — | `POST /users/:id/disable` |
+| Webhook events | `GET /webhook-events` | — |
+
+That's the entire surface. Account and card creation, ACH/wire origination, statements, and disputes happen inside the embedded app rather than through the RtL API — see [Custom vs. Ready-to-Launch](/start-here/custom-vs-ready-to-launch/) for where each capability lives.
+
+## Quick examples
+
+```bash title="List a customer's accounts"
+curl 'https://api.s.unit.sh/ready-to-launch/accounts?filter[customerId]=10000' \
+  -H "Authorization: Bearer ${TOKEN}"
+```
+
+```bash title="Create a book payment (with idempotency)"
+curl -X POST 'https://api.s.unit.sh/ready-to-launch/book-payments' \
+  -H 'Content-Type: application/vnd.api+json' \
+  -H "Authorization: Bearer ${TOKEN}" \
+  --data-raw '{
+    "data": {
+      "type": "bookPayment",
+      "attributes": { "amount": 1000, "description": "Payout", "idempotencyKey": "po_123" },
+      "relationships": {
+        "account":            { "data": { "type": "account", "id": "10013" } },
+        "operationalAccount": { "data": { "type": "account", "id": "10020" } }
+      }
+    }
+  }'
+```
+
+<LinkCard
+	title="Full interactive reference ↗"
+	description="Browse and try every endpoint, schema, and example."
+	href="/unit-rtl-banking-docs/api-reference/"
+	target="_blank"
+/>

@@ -1,0 +1,90 @@
+---
+title: Ready-to-Launch Banking
+description: Embed a white-labeled bank account, cards, and payments experience in your product in weeks — not quarters. Developer documentation for Unit Ready-to-Launch Banking.
+template: splash
+hero:
+  tagline: Embed a fully managed, white-labeled banking experience — accounts, cards, and payments — in your product in weeks, not quarters. One web component, one JWT, and you are live in sandbox today.
+  image:
+    file: ../../assets/hero.svg
+  actions:
+    # Hero links can't use expressions; they include the site base explicitly.
+    # If you change `base` in astro.config.mjs, update these two paths.
+    - text: Start the 5-minute quickstart
+      link: /unit-rtl-banking-docs/start-here/quickstart/
+      icon: rocket
+    - text: How it works
+      link: /unit-rtl-banking-docs/start-here/how-it-works/
+      icon: right-arrow
+      variant: minimal
+    - text: Open the live demo
+      link: https://demo.unit.co/ready-to-launch/banking
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard, Steps } from '@astrojs/starlight/components';
+
+## Pick your path
+
+<CardGrid stagger>
+	<LinkCard
+		title="New here? Start with the concepts"
+		description="What Ready-to-Launch is, how it differs from Custom, and the moving parts you'll integrate."
+		href="/unit-rtl-banking-docs/start-here/introduction/"
+	/>
+	<LinkCard
+		title="Ship the embed"
+		description="Drop in the web component, wire up your JWT, and brand it. The minimum path to a working app."
+		href="/unit-rtl-banking-docs/build/embed-the-app/"
+	/>
+	<LinkCard
+		title="Operate it on day 2"
+		description="Webhooks, application states, error handling, and the observability you need in production."
+		href="/unit-rtl-banking-docs/operate/webhooks/"
+	/>
+	<LinkCard
+		title="Call the API"
+		description="Read accounts, customers, and transactions; move money with book payments. Interactive reference."
+		href="/unit-rtl-banking-docs/api/overview/"
+	/>
+</CardGrid>
+
+## What you can build
+
+<CardGrid>
+	<Card title="Deposit accounts" icon="approve-check">
+		Interest-bearing checking accounts with routing and account numbers, balances, and statements.
+	</Card>
+	<Card title="Cards" icon="seti:default">
+		Physical and virtual debit cards with programmatic controls and a cardholder role.
+	</Card>
+	<Card title="Payments" icon="random">
+		ACH, same-day ACH, wires, checks, and free instant 24/7 internal book transfers.
+	</Card>
+	<Card title="Onboarding (KYC/KYB)" icon="seti:lock">
+		A managed application flow for individuals, sole props, and businesses — compliance handled by Unit.
+	</Card>
+	<Card title="Multi-user teams" icon="seti:plan">
+		Owner, Admin, ReadOnly, and Cardholder roles for business accounts.
+	</Card>
+	<Card title="Money-in features" icon="up-caret">
+		Mobile check deposit, fee-free nationwide ATMs, and Plaid / QuickBooks integrations.
+	</Card>
+</CardGrid>
+
+## Custom or Ready-to-Launch?
+
+Unit offers two products. Ready-to-Launch is the fastest path — a hosted, white-labeled app you embed. Custom is the full platform you assemble yourself. If you're not sure which fits, start here.
+
+<CardGrid>
+	<LinkCard
+		title="Custom vs. Ready-to-Launch"
+		description="A side-by-side of what each product includes and when to choose which."
+		href="/unit-rtl-banking-docs/start-here/custom-vs-ready-to-launch/"
+	/>
+	<LinkCard
+		title="How it works"
+		description="The embed, the JWT, the API, and webhooks — and how data flows between you and Unit."
+		href="/unit-rtl-banking-docs/start-here/how-it-works/"
+	/>
+</CardGrid>

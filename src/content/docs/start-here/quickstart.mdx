@@ -1,0 +1,108 @@
+---
+title: Quickstart (5 minutes)
+description: Render the Ready-to-Launch banking app in your own page using Unit's demo token — no account or backend required.
+sidebar:
+  order: 4
+---
+
+import { Steps, Tabs, TabItem, LinkCard } from '@astrojs/starlight/components';
+
+You can see the full banking app running in your own page in about five minutes, with **no Unit account and no backend**. We'll use Unit's public demo token, then point you at what to swap for a real integration.
+
+## What you'll need
+
+- Any page where you can add a `<script>` tag and some HTML.
+- Nothing else. The demo token (`demo.jwt.token`) is a real value Unit publishes so you can preview the component before signing up.
+
+## Render the app
+
+<Steps>
+
+1. **Add the component script to your page `<head>`.**
+
+   This loads the bundled web components from Unit's **sandbox** CDN.
+
+   ```html title="index.html (sandbox)"
+   <script
+     type="module"
+     src="https://ui.s.unit.sh/release/latest/components-extended.es.js"
+   ></script>
+   ```
+
+2. **Drop the component into your page `<body>`.**
+
+   ```html title="index.html"
+   <unit-elements-white-label-app
+     jwt-token="demo.jwt.token"
+   ></unit-elements-white-label-app>
+   ```
+
+3. **Open the page.** The component renders the onboarding flow. Walk through it with test data.
+
+   When asked for the **one-time passcode (OTP)** in sandbox, enter **`000001`**. Every application also needs a **unique phone number** — reusing one is a common cause of sandbox errors (see [Error handling](/operate/error-handling/)).
+
+</Steps>
+
+That's the whole loop: one script, one element, one token.
+
+## Prefer to create it in JavaScript?
+
+If you render the component dynamically (e.g. in a SPA after the user logs in):
+
+```js title="mount.js"
+const app = document.createElement('unit-elements-white-label-app');
+app.setAttribute('jwt-token', 'demo.jwt.token');
+document.querySelector('#unit-app-placeholder').append(app);
+```
+
+## A complete copy-paste page
+
+```html title="banking.html"
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>My Banking</title>
+    <script
+      type="module"
+      src="https://ui.s.unit.sh/release/latest/components-extended.es.js"
+    ></script>
+  </head>
+  <body>
+    <unit-elements-white-label-app
+      jwt-token="demo.jwt.token"
+    ></unit-elements-white-label-app>
+  </body>
+</html>
+```
+
+## From demo to real integration
+
+The demo token shows you the UI. To run it for *your* users, you swap three things:
+
+<Steps>
+
+1. **Mint your own JWT** instead of `demo.jwt.token`. The `sub` claim is your stable user id. → [Authentication & JWT](/build/authentication/)
+
+2. **Switch to the production CDN** when you go live (`https://ui.unit.co/...` instead of `https://ui.s.unit.sh/...`). → [Environment model](/launch/environments/)
+
+3. **Brand it** with your colors, logo, and card art. → [Theming & branding](/build/theming/)
+
+</Steps>
+
+## Sandbox vs. production script URLs
+
+| Environment | Component script |
+| --- | --- |
+| **Sandbox** | `https://ui.s.unit.sh/release/latest/components-extended.es.js` |
+| **Production** | `https://ui.unit.co/release/latest/components-extended.es.js` |
+
+:::note
+The `latest` channel always serves the newest release. For production you may prefer to pin a specific version once Unit gives you one, so a UI update never ships unannounced. Ask your solution engineer which versions are pinnable.
+:::
+
+## Next steps
+
+<LinkCard title="Embed the app, properly" description="Web, React Native, iOS, and Android — plus CSP and logout cleanup." href="/unit-rtl-banking-docs/build/embed-the-app/" />
+<LinkCard title="Authentication & JWT" description="Mint a token Unit will trust, from Okta, Auth0, Cognito, Stytch, or your own keys." href="/unit-rtl-banking-docs/build/authentication/" />
